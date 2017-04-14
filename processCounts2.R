@@ -11,10 +11,11 @@ library(dplyr)
 options(scipen=10)
 
 source("./MegaMatePlot.R")
-genomeVer="WS230"
+genomeVer="PRJNA13758.WS250"
 fileNames<-list.files(paste0("../finalData/",genomeVer),pattern="vars.*txt")
 samples<-read.table("sampleList.txt",header=TRUE,stringsAsFactors = FALSE)
-codes<-as.vector(t(data.frame(strsplit(fileNames,"_"))[2,]))
+codes<-as.vector(t(data.frame(strsplit(fileNames,"_"))[3,]))
+codes<-gsub(".txt","",codes)
 fileNames<-data.frame(fileName=fileNames,code=codes,stringsAsFactors = FALSE)
 fileList<-left_join(fileNames,samples,by="code")
 fileList<-arrange(fileList,phenotype,population,treatment)
