@@ -28,27 +28,29 @@ cumPosition_mini<-function(Chr,Pos,genomeIdx){
 
 getLocNames<-function(gr,phenotypes,phenotype=NULL,genomeVer="WS230") {
   locNames<-as.character(gr[gr$public %in% phenotypes[[phenotype]],]$public)
-  if (grepl("WS250", genomeVer)) {
-    locNames<-as.character(gr[gr$locus %in% phenotypes[[phenotype]],]$locus) 
-  }
+  # if (grepl("WS250", genomeVer)) {
+  #   locNames<-as.character(gr[gr$public %in% phenotypes[[phenotype]],]$public) 
+  # }
   return(locNames)
 }
 
 getLocPositions<-function(gr,phenotypes,phenotype,genomeIdx, genomeVer="WS230") {
-  pos<-as.numeric(gr[gr$public %in% phenotypes[[phenotype]],]$locPos)
-  chr<-as.character(seqnames(gr[gr$public %in% phenotypes[[phenotype]],]))
-  if (grepl("WS250", genomeVer)) {
-    pos<-as.numeric(gr[gr$locus %in% phenotypes[[phenotype]],]$locPos)
-    chr<-as.character(seqnames(gr[gr$locus %in% phenotypes[[phenotype]],]))
-  }
+   locNames<-getLocNames(gr,phenotypes, phenotype,genomeVer="WS230")
+   i<-match(locNames,gr$public)
+   pos<-as.numeric(gr[i,]$locPos)
+   chr<-as.character(seqnames(gr[i,]))
+  # if (grepl("WS250", genomeVer)) {
+  #   pos<-as.numeric(gr[gr$locus %in% phenotypes[[phenotype]],]$locPos)
+  #   chr<-as.character(seqnames(gr[gr$locus %in% phenotypes[[phenotype]],]))
+  # }
   return(cumPosition_mini(chr,pos,genomeIdx)$Position)
 }
 ##################
 
-cleanData<-function(myData,dataName,genomeVer,MADs=5,minReads=2,DelNonPolymorphic=FALSE) {
+cleanData<-function(myData,dataName,genomeVer,MADs=5,minReads=2) {
   myMessage<-paste(dataName,Sys.time(),"\n")
   #write to log file some general data
-  myMessage<-paste0("All loci: ",dim(myData)[1],"\n")
+  myMessage<-paste0(myMessage,"All loci: ",dim(myData)[1],"\n")
   readDepth<-grep("_readDepth",names(myData))
   med<-median(myData[,readDepth])
   myMessage<-paste0(myMessage,"Median read depth: ",med," \n")
@@ -65,22 +67,13 @@ cleanData<-function(myData,dataName,genomeVer,MADs=5,minReads=2,DelNonPolymorphi
   remove<-myData[,readDepth]<minReads
   myData<-myData[!remove,]
   myMessage<-paste0(myMessage,sum(remove)," loci removed because readDepth<",minReads,"\n")
-  #remove loci that are not polymorphic
-  if (DelNonPolymorphic) {
-    CBfreq<-grep("_CBfreq",names(myData))
-    remove<-(myData[,CBfreq] == 1 | myData[,CBfreq] == 0)
-    myData<-myData[!remove,]
-    myMessage<-paste0(myMessage,sum(remove)," loci removed because non-polymorphic in ", dataName,"\n")
-  }
   #write some final data to logFile
   myMessage<-paste0(myMessage,"Final number of loci: ",dim(myData)[1],"\n")
-  logFile<-file(description=paste0("../finalData/",genomeVer,"/log_",dataName),open="a")  
+  logFile<-file(description=paste0("../finalData/",genomeVer,"/log_",dataName),open="a")
   writeLines(myMessage,logFile)
   close(logFile)
   return(myData)
 }
-
-
 
 removeNonPolymorphic<-function(myData,dataName,genomeVer) {
   #remove sequences that are not polymorphic
@@ -133,7 +126,7 @@ plotFreq <- function (myData, extraData, useLoci=c(2)) {
   text(extraData$midpoint,0.98,extraData$chrNum,cex=1, col="black")
   abline(v=extraData$chrEnds,col="dark gray",lty=5)
   abline(v=extraData$locs[useLoci], col="dark red",lwd=0.6)
-  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.7, col="red",adj=extraData$labelAdj[useLoci],las=2)
+  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.8, col="red",adj=extraData$labelAdj[useLoci],las=2)
   legend("bottomright",legend=c("1F3","mel-26"),col=c(1,2),pch=16,cex=0.9)
 }
 
@@ -145,14 +138,28 @@ plotSmoothedDiff <- function (myData, extraData, sm=1001, useLoci=c(2)) {
   smdiff<-smootheByChr(CBdiff,myData$Chr,sm)
   plot(myData$Position,smdiff, type="n",xlab="Position(bp)", ylab="Hawaii allele freq difference", main=extraData$mainTitle, 
        ylim=c(-1,1), xlim=c(0,max(myData$Position)))
-  plotByChr(myData, smdiff, chrList=extraData$chrs,lwd=4)
+  plotByChr(myData, smdiff, chrList=extraData$chrs,lwd=2)
   text(extraData$midpoint,0.98,extraData$chrNum,cex=1, col="black")
   abline(v=extraData$chrEnds,col="dark gray",lty=5)
   abline(v=extraData$locs[useLoci], col="red",lwd=0.8)
-  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.7, col="red",adj=extraData$labelAdj[useLoci],las=2)
+  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.8, col="red",adj=extraData$labelAdj[useLoci],las=2)
   abline(h=0,lty=5,col="dark gray")
 }
 
+plotSmoothedDiff1 <- function (myData, extraData, sm=1001, useLoci=c(2)) {
+  CBfreq<-grep("_CBfreq",names(myData))
+  CBdiff<-myData[,CBfreq[2]]-myData[,CBfreq[1]]
+  smdiff<-smootheByChr1(CBdiff,myData$Chr,sm)
+  plot(myData$Position,smdiff, type="n",xlab="Position(bp)", ylab="Hawaii allele freq difference", 
+       main=extraData$mainTitle, ylim=c(-1,1), xlim=c(0,max(myData$Position)))
+  plotByChr(myData, smdiff, chrList=extraData$chrs,lwd=2)
+  text(extraData$midpoint,0.98,extraData$chrNum,cex=1, col="black")
+  abline(v=extraData$chrEnds,col="dark gray",lty=5)
+  abline(v=extraData$locs[useLoci], col="red",lwd=0.8)
+  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.8, col="red",
+        adj=extraData$labelAdj[useLoci])
+  abline(h=0,lty=5,col="dark gray")
+}
 
 smootheByChr <- function( data2smoothe, chrData, smWin) {
   smoothedData<-c(sgolayfilt(data2smoothe[chrData=="CHROMOSOME_I"],p=3,n=smWin),
@@ -164,6 +171,15 @@ smootheByChr <- function( data2smoothe, chrData, smWin) {
   return(smoothedData)
 }
 
+smootheByChr1 <- function( data2smoothe, chrData, smWin) {
+  smoothedData<-c(sgolayfilt(data2smoothe[chrData=="I"],p=3,n=smWin),
+                  sgolayfilt(data2smoothe[chrData=="II"],p=3,n=smWin),
+                  sgolayfilt(data2smoothe[chrData=="III"],p=3,n=smWin),
+                  sgolayfilt(data2smoothe[chrData=="IV"],p=3,n=smWin),
+                  sgolayfilt(data2smoothe[chrData=="V"],p=3,n=smWin),
+                  sgolayfilt(data2smoothe[chrData=="X"],p=3,n=smWin))
+  return(smoothedData)
+}
 
 
 plotByChr<-function(myData, yData, chrList, chrColumn="Chr", ...) {
@@ -188,9 +204,33 @@ plotSmPvals<-function(myData, log10pVals, extraData, sm=1001, useLoci=c(2)) {
   text(90000000,-log10(0.05),"FDR=0.05", col="dark red",pos=3,cex=0.8)
 }
 
+plotSmPvals1<-function(myData, log10pVals, extraData, sm=1001, useLoci=c(2)) {
+   smPvals<-smootheByChr1(log10pVals, myData$Chr, sm)
+   plot(myData$Position ,smPvals, type="n",xlab="Position(bp)", ylab="-log10(p value)", main=extraData$mainTitle, ylim=c(0,max(smPvals)*1.1), xlim=c(0,max(myData$Position)))
+   plotByChr(myData, smPvals, chrList=extraData$chrs, lwd=2)
+   text(extraData$midpoint, 1.1*max(smPvals), extraData$chrNum, cex=1, col="black")
+   abline(v=extraData$chrEnds,col="dark gray",lty=5)
+   abline(v=extraData$locs[useLoci], col="red",lwd=0.8)
+   mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.7, col="red",adj=extraData$labelAdj[useLoci], las=2)
+   abline(h=-log10(0.05),lty=5,col="dark red")
+   text(90000000,-log10(0.05),"FDR=0.05", col="dark red",pos=3,cex=0.8)
+}
+
 #### added from m201512and201602
 plotSmGvals_sGolay<-function(myData, Gvals, extraData, sm=1001, useLoci=c(2)) {
   smGvals<-smootheByChr(Gvals, myData$Chr, sm)
+  plot(myData$Position ,smGvals, type="n",xlab="Position(bp)", ylab="smoothed G values (sGolay)", 
+       main=extraData$mainTitle, ylim=c(0,max(smGvals)*1.1), xlim=c(0,max(myData$Position)))
+  plotByChr(myData, smGvals, chrList=extraData$chrs, lwd=2)
+  text(extraData$midpoint, 1.1*max(smGvals), extraData$chrNum, cex=1, col="black")
+  abline(v=extraData$chrEnds,col="dark gray",lty=5)
+  abline(v=extraData$locs[useLoci], col="red",lwd=0.8)
+  mtext(extraData$locNames[useLoci], at=extraData$locs[useLoci], cex=0.7, col="red",
+        adj=extraData$labelAdj[useLoci],las=2)
+}
+
+plotSmGvals_sGolay1<-function(myData, Gvals, extraData, sm=1001, useLoci=c(2)) {
+  smGvals<-smootheByChr1(Gvals, myData$Chr, sm)
   plot(myData$Position ,smGvals, type="n",xlab="Position(bp)", ylab="smoothed G values (sGolay)", 
        main=extraData$mainTitle, ylim=c(0,max(smGvals)*1.1), xlim=c(0,max(myData$Position)))
   plotByChr(myData, smGvals, chrList=extraData$chrs, lwd=2)

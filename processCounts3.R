@@ -220,8 +220,10 @@ for (ff in seq(1,dim(fileList)[1],by=2)) {
   
   # add cumulative genome coordinates to data table
   cont<-cont[complete.cases(cont),]
+  #327028 goes to 324889
   cont<-cumPosition(cont,genomeIdx)
   select<-select[complete.cases(select),]
+  #327028 goes to 324530
   select<-cumPosition(select,genomeIdx)
   
   #change name of chromosomes to "CHROMOSOME_I" format
@@ -230,15 +232,18 @@ for (ff in seq(1,dim(fileList)[1],by=2)) {
   
   # clean data by removing data with less than minRead, and whose read numbers are extreme outliers
   cont<-cleanData(cont, paste0(fileList[ff,"phenotype"],"_",fileList[ff,"population"]), genomeVer=genomeVer,
-                  MADs=2, minReads=5)
+                  MADs=2, minReads=10)
+  #down to 297417
   select<-cleanData(select, paste0(fileList[ff,"phenotype"],"_",fileList[ff,"population"]), genomeVer=genomeVer,
-                    MADs=2, minReads=5)
+                    MADs=2, minReads=10)
+  #down to 291030
   # merge the two tables on common columns (chr, position, variant)
   names(cont)[2]<-"ID"
   names(select)[2]<-"ID"
   myExp<-merge(cont[,c(2,4,6:13)],select[,c(2,4,6:13)],by=c("ID","Chr","Pos","Position","N2var","CBvar"),sort=FALSE)
   # remove loci that are not polymorphic in both control and selected
   myExp<-removeNonPolymorphic(myExp, paste0(fileList[ff,"phenotype"],"_",fileList[ff,"population"]),genomeVer=genomeVer)
+  # down to 279746
   # remove SNPs where the alternative allele was not properly called
   #myExp<-removeUncalledSNPs(myExp, paste0(fileList[ff,"phenotype"],"_",fileList[ff,"population"]),genomeVer=genomeVer)
   # remove superfluous columns (separate counts of forward and reverse reads)
@@ -289,7 +294,7 @@ for (ff in seq(1,dim(fileList)[1],by=2)) {
   plotSmoothedDiff1(myExp,extraData=bundle,sm=1001,useLoci=useLoci)
     
   # plot -log10 of p values after polynomial smoothing (sgolay filter)
-  plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+  plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
   title(sub="sm.logFisherPvals.sg1001")
   myExp["sm.logFisherPvals.sg1001"]<-smootheByChr1(-log10(myExp$padj.fdr), myExp$Chr, sm=1001)
   findDistppw2(myExp,ppw1_loc=c(4185062,4189932),dataCol="sm.logFisherPvals.sg1001")  
@@ -353,6 +358,9 @@ for (ff in seq(1,dim(fileList)[1],by=2)) {
 }
 dev.off()
 
+###
+# all this was with myExp that has 279244 SNPs in it.
+
 ### check quality metrics
 IDmrg<-as.vector(myExp$ID)
 i<-which(newCont$N2id.WS250 %in% IDmrg)
@@ -367,7 +375,7 @@ for (j in param) {
 }
 dev.off()
 
-
+###############################################################################3
 #try filtering data with quality scores
 removeBQ<-filter(newCont,RPB.x<0.1,RPB.y<0.1,BQB.x<0.1,BQB.y<0.1)
 plotFreq(myExp,extraData=bundle,useLoci=useLoci)
@@ -377,104 +385,105 @@ points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,col="darkblue
 # <0.3 looks ok
 # even <0.1 looks ok (644 points)
 
+# these plot the points at the bottom of the plot
+# pdf(file="../plots/mappingMetrics_sm.pdf",width=8,height=11, paper="a4")
+# par(mfrow=c(2,1))
+# Threshold=0
+# removeMQ<-filter(newCont,QUAL.x==Threshold | QUAL.y==Threshold)
+# plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+# #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+# i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+# length(i)
+# points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
+#        col="#0000ff55")
+# title(sub=paste0("QUAL=",Threshold))
+# 
+# Threshold=0
+# removeMQ<-filter(newCont,MQB.x==Threshold | MQB.y==Threshold)
+# plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+# #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+# i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+# length(i)
+# points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
+#        col="#0000ff55")
+# title(sub=paste0("MQB=",Threshold))
+# 
+# Threshold=0
+# removeMQ<-filter(newCont,MQSB.x==Threshold | MQSB.y==Threshold)
+# plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+# #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+# i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+# length(i)
+# points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
+#        col="#0000ff55")
+# title(sub=paste0("MQSB=",Threshold))
+# 
+# Threshold=10
+# removeMQ<-filter(newCont,MQ.x<Threshold | MQ.y<Threshold)
+# #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+# plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+# i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+# length(i)
+# points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
+#        col="#0000ff55")
+# title(sub=paste0("MQ<",Threshold))
+# 
+# dev.off()
+
+
+#these overlay the plots on the smoothed line
 pdf(file="../plots/mappingMetrics_sm.pdf",width=8,height=11, paper="a4")
 par(mfrow=c(2,1))
-Threshold=0
+Threshold=999
 removeMQ<-filter(newCont,QUAL.x==Threshold | QUAL.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
 length(i)
-points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
-       col="#0000ff55")
-title(sub=paste0("QUAL=",Threshold))
-
-Threshold=0
-removeMQ<-filter(newCont,MQB.x==Threshold | MQB.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
-#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
-i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-length(i)
-points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
-       col="#0000ff55")
-title(sub=paste0("MQB=",Threshold))
-
-Threshold=0
-removeMQ<-filter(newCont,MQSB.x==Threshold | MQSB.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
-#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
-i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-length(i)
-points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
-       col="#0000ff55")
-title(sub=paste0("MQSB=",Threshold))
-
-Threshold=10
-removeMQ<-filter(newCont,MQ.x<Threshold | MQ.y<Threshold)
-#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
-i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-length(i)
-points(myExp[i,"Position"],myExp[i,"X1Fmerged_4999_CBfreq"],pch=16,
-       col="#0000ff55")
-title(sub=paste0("MQ<",Threshold))
-
-dev.off()
-
-
-
-pdf(file="../plots/mappingMetrics_sm.pdf",width=8,height=11, paper="a4")
-par(mfrow=c(2,1))
-Threshold=0
-removeMQ<-filter(newCont,QUAL.x==Threshold | QUAL.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
-#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
-i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-length(i)
-points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
        col="#0000ff55")
 title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
 
 Threshold=0
 removeMQ<-filter(newCont,MQB.x==Threshold | MQB.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
 length(i)
-points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
        col="#0000ff55")
 title(sub=paste0("MQB=",Threshold,"  ",length(i)," SNPs"))
 
 Threshold=0
 removeMQ<-filter(newCont,MQSB.x==Threshold | MQSB.y==Threshold)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
 length(i)
-points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
        col="#0000ff55")
 title(sub=paste0("MQSB=",Threshold,"  ",length(i)," SNPs"))
 
 Threshold=10
 removeMQ<-filter(newCont,MQ.x<Threshold | MQ.y<Threshold)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
-plotSmPvals(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
 length(i)
-points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
        col="#0000ff55")
 title(sub=paste0("MQ<",Threshold,"  ",length(i)," SNPs"))
 
 dev.off()
 
-
+#these remove dots from smoothed data
 pdf(file="../plots/mappingMetrics_sm_sub.pdf",width=8,height=11, paper="a4")
 par(mfrow=c(2,1))
-Threshold=0
+Threshold=999
 removeMQ<-filter(newCont,QUAL.x==Threshold | QUAL.y==Threshold)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-plotSmPvals(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
 length(i)
 #points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
 title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
@@ -483,7 +492,7 @@ Threshold=0
 removeMQ<-filter(newCont,MQB.x==Threshold | MQB.y==Threshold)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-plotSmPvals(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
 length(i)
 #points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
 title(sub=paste0("MQB=",Threshold,"  ",length(i)," SNPs"))
@@ -492,7 +501,7 @@ Threshold=0
 removeMQ<-filter(newCont,MQSB.x==Threshold | MQSB.y==Threshold)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-plotSmPvals(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
 length(i)
 #points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
 title(sub=paste0("MQSB=",Threshold,"  ",length(i)," SNPs"))
@@ -501,7 +510,7 @@ Threshold=10
 removeMQ<-filter(newCont,MQ.x<Threshold | MQ.y<Threshold)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-plotSmPvals(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
 length(i)
 #points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
 title(sub=paste0("MQ<",Threshold,"  ",length(i)," SNPs"))
@@ -511,7 +520,116 @@ removeMQ<-filter(newCont,MQB.x==0 | MQB.y==0 |
                  MQSB.x==0 | MQSB.y==0 | MQ.x<10 | MQ.y<10)
 #plotFreq(myExp,extraData=bundle,useLoci=useLoci)
 i<-which(myExp$ID %in% removeMQ$N2id.WS250)
-plotSmPvals(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("combined","  ",length(i)," SNPs"))
+
+dev.off()
+
+################################################
+### what about when both are bad?? (now that mapping to both genomes this is sure sign that SNP is unreliable)
+
+pdf(file="../plots/mappingMetrics_sm_both.pdf",width=8,height=11, paper="a4")
+par(mfrow=c(2,1))
+Threshold=0
+removeMQ<-filter(newCont,QUAL.x==Threshold & QUAL.y==Threshold)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+length(i)
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
+       col="#0000ff55")
+title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=50
+removeMQ<-filter(newCont,QUAL.x<Threshold & QUAL.y<Threshold)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+length(i)
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
+       col="#0000ff55")
+title(sub=paste0("QUAL<",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=100
+removeMQ<-filter(newCont,QUAL.x<Threshold & QUAL.y<Threshold)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+length(i)
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
+       col="#0000ff55")
+title(sub=paste0("QUAL<",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=999
+removeMQ<-filter(newCont,QUAL.x==Threshold & QUAL.y==Threshold)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+plotSmPvals1(myExp, -log10(myExp$padj.fdr), extraData=bundle, sm=1001, useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+length(i)
+points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=10,
+       col="#0000ff55")
+title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
+
+dev.off()
+
+
+pdf(file="../plots/mappingMetrics_sm_sub_both.pdf",width=8,height=11, paper="a4")
+par(mfrow=c(2,1))
+Threshold=0
+removeMQ<-filter(newCont,QUAL.x==Threshold & QUAL.y==Threshold)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=50
+removeMQ<-filter(newCont,QUAL.x<Threshold & QUAL.y<Threshold)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("QUAL<",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=100
+removeMQ<-filter(newCont,QUAL.x<Threshold & QUAL.y<Threshold)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("QUAL<",Threshold,"  ",length(i)," SNPs"))
+
+Threshold=999
+removeMQ<-filter(newCont,QUAL.x==Threshold & QUAL.y==Threshold)
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("QUAL=",Threshold,"  ",length(i)," SNPs"))
+
+
+removeMQ<-filter(newCont,(MQB.x==0 | MQB.y==0) |
+                    (MQSB.x==0 | MQSB.y==0) | (MQ.x<10 | MQ.y<10))
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
+length(i)
+#points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
+title(sub=paste0("combined","  ",length(i)," SNPs"))
+
+
+removeMQ<-filter(newCont,(MQB.x==0 | MQB.y==0) |
+                    (MQSB.x==0 | MQSB.y==0) | (MQ.x<10 | MQ.y<10) | 
+                    (QUAL.x==0 & QUAL.y==0) | (QUAL.x==999 & QUAL.y==999))
+#plotFreq(myExp,extraData=bundle,useLoci=useLoci)
+i<-which(myExp$ID %in% removeMQ$N2id.WS250)
+plotSmPvals1(myExp[-i,], -log10(myExp$padj.fdr[-i]), extraData=bundle, sm=1001, useLoci=useLoci)
 length(i)
 #points(myExp[i,"Position"],-log10(myExp[i,"padj.fdr"]),pch=16,col="#0000ff55")
 title(sub=paste0("combined","  ",length(i)," SNPs"))
